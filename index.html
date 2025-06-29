@@ -42,9 +42,8 @@
     const map = L.map('map').setView([20, 0], 2);
 
     // Pirate-style black and white tile layer
-    L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', {
-      attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>'
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
 
     // Pirate flag icon (make sure pirate-flag.png is in the same folder)
     const pirateIcon = L.icon({
