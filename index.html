@@ -26,6 +26,7 @@
     fetch('https://discord-map-api.onrender.com/data')
       .then(res => res.json())
       .then(data => {
+          console.log("Fetched data:", data);  // 🔍 See if it's getting here
         data.forEach(user => {
           const location = user["City, State, Country"];
           const name = user["Name"];
