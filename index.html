@@ -1,57 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>High Thumos Map</title>
+  <title>High Thumos Brotherhood Map</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <!-- Pirate-style serif font -->
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
+
   <style>
-    #map { height: 100vh; }
+    body {
+      margin: 0;
+      background-image: url('https://i.imgur.com/LQXtQfT.jpg'); /* Parchment texture */
+      background-size: cover;
+      font-family: 'IM Fell English', serif;
+    }
+
+    #map {
+      height: 100vh;
+      width: 100vw;
+      border: 5px solid #5b3a29;
+    }
+
+    .leaflet-popup-content {
+      font-family: 'IM Fell English', serif;
+      font-size: 14px;
+      color: #2b1e16;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
- <script>
-  const map = L.map('map').setView([20, 0], 2);
-  L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', {
-  attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>'
-}).addTo(map);
 
+  <script>
+    const map = L.map('map').setView([20, 0], 2);
 
-  const markers = [];
+    // Pirate-style black and white tile layer
+    L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', {
+      attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>'
+    }).addTo(map);
 
-  function loadMarkers() {
-    // Remove old markers
-    markers.forEach(m => map.removeLayer(m));
-    markers.length = 0;
+    // Pirate flag icon (make sure pirate-flag.png is in the same folder)
+    const pirateIcon = L.icon({
+      iconUrl: 'pirate-flag.png',
+      iconSize: [38, 38],
+      iconAnchor: [19, 38],
+      popupAnchor: [0, -38]
+    });
 
-    fetch('https://discord-map-api.onrender.com/data')
-      .then(res => res.json())
-      .then(data => {
-          console.log("Fetched data:", data);  // 🔍 See if it's getting here
-        data.forEach(user => {
-          const location = user["City, State, Country"];
-          const name = user["Name"];
+    const markers = [];
 
-          if (location) {
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`)
-              .then(res => res.json())
-              .then(geo => {
-                if (geo[0]) {
-                  const marker = L.marker([geo[0].lat, geo[0].lon])
-                    .addTo(map)
-                    .bindPopup(`<b>${name}</b><br>${location}`);
-                  markers.push(marker);
-                }
-              });
-          }
+    function loadMarkers() {
+      // Remove old markers
+      markers.forEach(m => map.removeLayer(m));
+      markers.length = 0;
+
+      fetch('https://discord-map-api.onrender.com/data')
+        .then(res => res.json())
+        .then(data => {
+          console.log("Fetched data:", data);
+          data.forEach(user => {
+            const location = user["City, State, Country"];
+            const name = user["Name"];
+
+            if (location) {
+              fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`)
+                .then(res => res.json())
+                .then(geo => {
+                  if (geo[0]) {
+                    const marker = L.marker([geo[0].lat, geo[0].lon], { icon: pirateIcon })
+                      .addTo(map)
+                      .bindPopup(`<b>⚓ ${name}</b><br>Spotted in ${location}`);
+                    markers.push(marker);
+                  }
+                });
+            }
+          });
         });
-      });
-  }
+    }
 
-  loadMarkers();
-  setInterval(loadMarkers, 60000); // every 60 seconds
-</script>
+    loadMarkers();
+    setInterval(loadMarkers, 60000); // refresh every 60 seconds
+  </script>
 </body>
 </html>
