@@ -143,10 +143,16 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <script>
-    const map = L.map('map', {
+   const map = L.map('map', {
       minZoom: 2,
-      maxZoom: 18
-    }).setView([20, 0], 2);
+      maxZoom: 18,
+      maxBounds: [
+        [-85, -200], // Southwest: slightly below Antarctica and west of South America
+        [85, 200]    // Northeast: slightly above Greenland and east of Australia/NZ
+      ],
+      maxBoundsViscosity: 1.0
+    }).setView([20, 10], 2);
+
 
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -163,50 +169,53 @@
     const markers = [];
     const markerMap = {};
 
-    function loadMarkers() {
-      markers.forEach(m => map.removeLayer(m));
-      markers.length = 0;
-      document.getElementById("memberList").innerHTML = "";
+   function loadMarkers() {
+  markers.forEach(m => map.removeLayer(m));
+  markers.length = 0;
+  document.getElementById("memberList").innerHTML = "";
 
+  fetch('https://discord-map-api.onrender.com/data')
+    .then(res => res.json())
+    .then(data => {
+      data.forEach(user => {
+        const name = user["Name"];
+        const location = user["City, State, Country"];
+        const lat = parseFloat(user["Latitude"]);
+        const lon = parseFloat(user["Longitude"]);
 
-      fetch('https://discord-map-api.onrender.com/data')
-        .then(res => res.json())
-        .then(data => {
-          data.forEach(user => {
-            const name = user["Name"];
-            const location = user["City, State, Country"];
-            const lat = parseFloat(user["Latitude"]);
-            const lon = parseFloat(user["Longitude"]);
+        // These were missing in your reverted version
+        const city = (user["City"] || "").trim();
+        const state = (user["State"] || "").trim();
+        const country = (user["Country"] || "").trim();
 
+        if (!isNaN(lat) && !isNaN(lon)) {
+          const jitteredLat = lat + (Math.random() - 0.5) * 0.0215;
+          const jitteredLon = lon + (Math.random() - 0.5) * 0.0215;
 
-            if (!isNaN(lat) && !isNaN(lon)) {
-              const jitteredLat = lat + (Math.random() - 0.5) * 0.02;
-              const jitteredLon = lon + (Math.random() - 0.5) * 0.02;
+          const marker = L.marker([jitteredLat, jitteredLon], { icon: pirateIcon })
+            .addTo(map)
+            .bindPopup(`<b>⚓ ${name}</b><br>Spotted in ${location}`);
 
-              const marker = L.marker([jitteredLat, jitteredLon], { icon: pirateIcon })
-                .addTo(map)
-                .bindPopup(`<b>⚓ ${name}</b><br>Spotted in ${location}`);
+          markers.push(marker);
+          markerMap[name.toLowerCase()] = marker;
 
-              markers.push(marker);
-              markerMap[name.toLowerCase()] = marker;
+          const li = document.createElement("li");
+          li.textContent = name;
+          li.dataset.city = city;
+          li.dataset.state = state;
+          li.dataset.country = country;
 
-              // Save for filtering
-              const li = document.createElement("li");
-              li.textContent = name;
-
-
-              li.addEventListener("click", () => {
-                map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 4));
-                marker.openPopup();
-                document.getElementById("memberListBox").style.display = "none";
-              });
-
-              document.getElementById("memberList").appendChild(li);
-
-            }
+          li.addEventListener("click", () => {
+            map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 4));
+            marker.openPopup();
+            document.getElementById("memberListBox").style.display = "none";
           });
-        });
-    }
+
+          document.getElementById("memberList").appendChild(li);
+        }
+      });
+    });
+}
 
     loadMarkers();
     setInterval(loadMarkers, 60000);
