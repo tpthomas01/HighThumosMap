@@ -5,6 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Preload parchment background 
+  <link rel="preload" href="https://i.imgur.com/3poyxUG.jpeg" as="image">-->
+
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
@@ -14,83 +17,277 @@
   <style>
     body {
       margin: 0;
-      background-image: url('https://i.imgur.com/3poyxUG.jpeg'); /* Parchment texture */
-      background-size: cover;
       font-family: 'IM Fell English', serif;
+      background: #000;
+      overflow: hidden;
     }
 
     #map {
-  height: 100vh;
-  width: 100vw;
-  border: 12px ridge #8b5e3c;
-  box-shadow: 0 0 30px #2e1b0c inset;
-}
+      height: 100vh;
+      width: 100vw;
+      border: 12px ridge #8b5e3c;
+      box-shadow: 0 0 30px #2e1b0c inset;
+      filter: none /*sepia(0.6) saturate(0.7) contrast(1.2)*/;
+      z-index: 0;
+    }
 
     .leaflet-popup-content {
       font-family: 'IM Fell English', serif;
       font-size: 14px;
       color: #2b1e16;
     }
+/*
+    #parchment-overlay {
+      background-image: url('https://media.istockphoto.com/id/1294763851/vector/empty-blank-light-cream-or-beige-coloured-grunge-textured-vector-backgrounds.jpg?s=612x612&w=0&k=20&c=EWS5Pi3yUrPlWxICASa0b1E5oNGDD58twPyLRFTKhco=');
+      background-size: cover;
+      opacity: 0.1;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 400;
+    }
+      */
+   #compass-container {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      width: 70px;
+      z-index: 999;
+      cursor: pointer;
+     }
+    #compass {
+      width: 70px;
+    }
+
+    #highthumos {
+      position: fixed;
+      top: 35px;
+      right: 10px;
+      width: 100px;
+      z-index: 999;
+    }
+
+    #map-title {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'IM Fell English', serif;
+      font-size: 36px;
+      font-style: italic;
+      color: #000;
+      z-index: 1000;
+      text-shadow: 1px 1px 0px #d8c8a0;
+      pointer-events: none;
+    }
+   #memberListBox {
+      position: fixed;
+      bottom: 100px;
+      right: 10px;
+      width: 250px;
+      max-height: 50vh; /* 60% of the visible screen height */
+      background: #fff3dc;
+      border: 2px solid #8b5e3c;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: 'IM Fell English', serif;
+      z-index: 1001;
+      overflow-y: auto;
+      box-shadow: 0 0 10px #2e1b0c;
+      display: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    #memberListBox input {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 5px;
+      font-size: 14px;
+    }
+
+    #memberList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    #memberList li {
+      margin: 4px 0;
+      cursor: pointer;
+      color: #2b1e16;
+    }
+
+    #memberList li:hover {
+      background: #e6d4b8;
+    }
   </style>
 </head>
 <body>
+  <h1 id="map-title">The High Thumos Brotherhood</h1>
+
   <div id="map"></div>
-  <img src="https://cdn-icons-png.flaticon.com/128/2439/2439655.png" 
-     style="position: fixed; bottom: 10px; right: 10px; width: 100px; z-index: 999;" 
-     alt="Compass Rose" />
+  <!--<div id="parchment-overlay"></div>-->
+  <div id="compass-container">
+    <img id="compass" src="https://static.vecteezy.com/system/resources/thumbnails/048/096/381/small_2x/antique-brass-compass-rose-with-detailed-engravings-png.png" alt="Compass Rose" />
+  </div>
+  <img id="highthumos" src="https://c10.patreonusercontent.com/4/patreon-media/p/reward/8001693/633bfbe57a4e42a2a2b44a78a8c90016/eyJ3Ijo0MDB9/8.png?token-hash=i09OYPUatFb_QpKdV8NcUIB4E8M6KNFMbBby7GYsmmA%3D" alt="Logo" />
+  <div id="memberListBox">
+    <button id="closeListBtn" style="position:absolute; top:5px; right:10px; border:none; background:none; font-size:18px; cursor:pointer;">✕</button>
+    
+    <select id="countryFilter"><option value="">All Countries</option></select>
+    <select id="stateFilter"><option value="">All States</option></select>
+    <select id="cityFilter"><option value="">All Cities</option></select>
+
+    <input type="text" id="searchBox" placeholder="Search members..." />
+    <ul id="memberList"></ul>
+  </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <script>
-    const map = L.map('map').setView([20, 0], 2);
+    const map = L.map('map', {
+      minZoom: 2,
+      maxZoom: 18
+    }).setView([20, 0], 2);
 
-    // Pirate-style black and white tile layer
-   L.tileLayer('https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png').addTo(map);
 
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-
-    // Pirate flag icon (make sure pirate-flag.png is in the same folder)
     const pirateIcon = L.icon({
       iconUrl: 'https://cdn-icons-png.flaticon.com/128/2144/2144847.png',
-      iconSize: [38, 38],
-      iconAnchor: [19, 38],
-      popupAnchor: [0, -38]
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -30]
     });
 
     const markers = [];
+    const markerMap = {};
 
     function loadMarkers() {
-      // Remove old markers
       markers.forEach(m => map.removeLayer(m));
       markers.length = 0;
+      document.getElementById("memberList").innerHTML = "";
+
+    // Clear filters
+    const countrySet = new Set();
+    const stateSet = new Set();
+    const citySet = new Set();
 
       fetch('https://discord-map-api.onrender.com/data')
         .then(res => res.json())
         .then(data => {
-          console.log("Fetched data:", data);
           data.forEach(user => {
-            const location = user["City, State, Country"];
             const name = user["Name"];
+            const location = user["City, State, Country"];
+            const lat = parseFloat(user["Latitude"]);
+            const lon = parseFloat(user["Longitude"]);
 
-            if (location) {
-              fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`)
-                .then(res => res.json())
-                .then(geo => {
-                  if (geo[0]) {
-                    const marker = L.marker([geo[0].lat, geo[0].lon], { icon: pirateIcon })
-                      .addTo(map)
-                      .bindPopup(`<b>⚓ ${name}</b><br>Spotted in ${location}`);
-                    markers.push(marker);
-                  }
-                });
+            const city = user["City"] || "";
+            const state = user["State"] || "";
+            const country = user["Country"] || "";
+
+            if (!isNaN(lat) && !isNaN(lon)) {
+              const jitteredLat = lat + (Math.random() - 0.5) * 0.02;
+              const jitteredLon = lon + (Math.random() - 0.5) * 0.02;
+
+              const marker = L.marker([jitteredLat, jitteredLon], { icon: pirateIcon })
+                .addTo(map)
+                .bindPopup(`<b>⚓ ${name}</b><br>Spotted in ${location}`);
+
+              markers.push(marker);
+              markerMap[name.toLowerCase()] = marker;
+
+              // Save for filtering
+              const li = document.createElement("li");
+              li.textContent = name;
+              li.dataset.city = city;
+              li.dataset.state = state;
+              li.dataset.country = country;
+
+
+              li.addEventListener("click", () => {
+                map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 4));
+                marker.openPopup();
+                document.getElementById("memberListBox").style.display = "none";
+              });
+
+              document.getElementById("memberList").appendChild(li);
+
+              // Add to sets
+              if (country) countrySet.add(country);
+              if (state) stateSet.add(state);
+              if (city) citySet.add(city);
             }
           });
+      populateFilterDropdown("countryFilter", countrySet);
+      populateFilterDropdown("stateFilter", stateSet);
+      populateFilterDropdown("cityFilter", citySet);
         });
     }
-
+      function populateFilterDropdown(id, values) {
+        const select = document.getElementById(id);
+        select.innerHTML = '<option value="">All</option>'; // clear old options
+        const sorted = [...values].sort();
+        sorted.forEach(val => {
+          const option = document.createElement("option");
+          option.value = val;
+          option.textContent = val;
+          select.appendChild(option);
+  });
+}
     loadMarkers();
-    setInterval(loadMarkers, 60000); // refresh every 60 seconds
+    setInterval(loadMarkers, 60000);
+
+    // Search box filter
+    function applyFilters() {
+      const query = document.getElementById("searchBox").value.toLowerCase().replace(/[^a-z0-9]/gi, '');
+      const selectedCountry = document.getElementById("countryFilter").value;
+      const selectedState = document.getElementById("stateFilter").value;
+      const selectedCity = document.getElementById("cityFilter").value;
+
+      const listItems = document.querySelectorAll("#memberList li");
+      let firstVisible = null;
+
+      listItems.forEach(li => {
+        const cleanedName = li.textContent.toLowerCase().replace(/[^a-z0-9]/gi, '');
+
+        const matchesSearch = cleanedName.includes(query);
+        const matchesCountry = !selectedCountry || li.dataset.country === selectedCountry;
+        const matchesState = !selectedState || li.dataset.state === selectedState;
+        const matchesCity = !selectedCity || li.dataset.city === selectedCity;
+
+        const isVisible = matchesSearch && matchesCountry && matchesState && matchesCity;
+        li.style.display = isVisible ? "block" : "none";
+
+        if (isVisible && !firstVisible) firstVisible = li;
+      });
+
+      if (firstVisible) {
+        firstVisible.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+// Attach to all filters + search
+["searchBox", "countryFilter", "stateFilter", "cityFilter"].forEach(id => {
+  document.getElementById(id).addEventListener("input", applyFilters);
+});
+
+
+
+    // Toggle box on compass click
+    document.getElementById("compass-container").addEventListener("click", () => {
+      const box = document.getElementById("memberListBox");
+      box.style.display = box.style.display === "none" ? "block" : "none";
+    });
+  // Close button
+document.getElementById("closeListBtn").addEventListener("click", () => {
+document.getElementById("memberListBox").style.display = "none";
+});
   </script>
 </body>
 </html>
