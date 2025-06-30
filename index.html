@@ -76,13 +76,24 @@
       left: 50%;
       transform: translateX(-50%);
       font-family: 'IM Fell English', serif;
-      font-size: 36px;
       font-style: italic;
       color: #000;
       z-index: 1000;
       text-shadow: 1px 1px 0px #d8c8a0;
       pointer-events: none;
-    }
+      font-size: 3vw; /* scales with screen width */
+  }
+  @media (max-width: 768px) {
+  #map-title {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  #map-title {
+    font-size: 18px;
+  }
+}
    #memberListBox {
       position: fixed;
       bottom: 100px;
@@ -183,7 +194,7 @@
         const lat = parseFloat(user["Latitude"]);
         const lon = parseFloat(user["Longitude"]);
 
-        // These were missing in your reverted version
+        
         const city = (user["City"] || "").trim();
         const state = (user["State"] || "").trim();
         const country = (user["Country"] || "").trim();
