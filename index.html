@@ -20,10 +20,11 @@
     }
 
     #map {
-      height: 100vh;
-      width: 100vw;
-      border: 5px solid #5b3a29;
-    }
+  height: 100vh;
+  width: 100vw;
+  border: 12px ridge #8b5e3c;
+  box-shadow: 0 0 30px #2e1b0c inset;
+}
 
     .leaflet-popup-content {
       font-family: 'IM Fell English', serif;
@@ -34,6 +35,9 @@
 </head>
 <body>
   <div id="map"></div>
+  <img src="https://cdn-icons-png.flaticon.com/128/2439/2439655.png" 
+     style="position: fixed; bottom: 10px; right: 10px; width: 100px; z-index: 999;" 
+     alt="Compass Rose" />
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -42,7 +46,8 @@
     const map = L.map('map').setView([20, 0], 2);
 
     // Pirate-style black and white tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+   L.tileLayer('https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png').addTo(map);
+
 
 
     // Pirate flag icon (make sure pirate-flag.png is in the same folder)
