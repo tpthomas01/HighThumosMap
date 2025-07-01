@@ -183,48 +183,53 @@
   text-align: center;
 }
 #radiusSlider {
+   appearance: none;
   -webkit-appearance: none;
   width: 100%;
-  height: 40px; /* extra height to allow vertical adjustment */
-  background: transparent;
-  border-radius: 7px;
+  height: 10px;
+  background: linear-gradient(to right, #0077be, #00bfff);
+  border-radius: 5px;
   outline: none;
   cursor: pointer;
-  margin-top: 8px;
-}
-
-#radiusSlider::-webkit-slider-runnable-track {
-  height: 8px;
-  background: linear-gradient(to right, #0077be, #00bfff);
-  border-radius: 7px;
-  margin-top: 16px; /* pushes the track *down* */
+  margin-top: 10px;
   box-shadow: inset 0 0 5px #2e1b0c;
 }
 
+/* Chrome, Safari, iOS */
 #radiusSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
+  appearance: none; 
   width: 32px;
   height: 32px;
   background: url('https://cdn-icons-png.flaticon.com/128/1355/1355901.png') no-repeat center center;
   background-size: contain;
+  background-color: transparent;
   border: none;
-  margin-top: -26px; /* pulls the ship *up* so it rides the track */
+  margin-top: -26px;
+  pointer-events: auto;
+
+  /* Mobile fixes */
+  -webkit-tap-highlight-color: transparent;
+
+  /* Optional shape masking for some mobile browsers */
+  -webkit-mask-image: url('https://cdn-icons-png.flaticon.com/128/1355/1355901.png');
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
 }
 
-#radiusSlider::-moz-range-track {
-  height: 8px;
-  background: linear-gradient(to right, #0077be, #00bfff);
-  border-radius: 7px;
-}
-
+/* Firefox */
 #radiusSlider::-moz-range-thumb {
   width: 32px;
   height: 32px;
   background: url('https://cdn-icons-png.flaticon.com/128/1355/1355901.png') no-repeat center center;
   background-size: contain;
+  background-color: transparent;
   border: none;
+  pointer-events: auto;
 }
+
+
   /* Responsive Mobile View */
  @media (max-width: 480px) {
   .member-container {
@@ -319,11 +324,11 @@
   <!-- Member List Box -->
   <div id="memberListBox" class="member-list-box">
     <div id="searchWrapper" class="search-wrapper">
-      <input type="text" id="searchBox" placeholder="Search members..." />
+      <input type="text" id="searchBox" placeholder="Search brotherhood..." />
       <button id="closeListBtn" class="close-btn">✕</button>
     </div>
 
-    <button id="findNearbyBtn" class="find-nearby-btn">Find Members Near You</button>
+    <button id="findNearbyBtn" class="find-nearby-btn">Find Brothers Near You</button>
     <ul id="memberList"></ul>
     <div id="toast" style="display: none;"></div>
   </div>
@@ -529,9 +534,9 @@ markers.forEach(marker => {
 
 
 if (count === 0) {
-  showToast("⚓ No members found nearby.");
+  showToast("⚓ No brothers found nearby.");
 } else {
-  showToast(`⚓ Found ${count} members near you.`);
+  showToast(`⚓ Found ${count} brothers near you.`);
   document.getElementById("memberListBox").style.display = "block";
 }
 
