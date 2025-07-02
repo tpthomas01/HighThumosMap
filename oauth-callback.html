@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Discord Auth Redirect</title>
+</head>
+<body>
+  <p>Linking your Discord…</p>
+
+  <script>
+    async function getAccessToken() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+
+      if (!code) {
+        alert('Missing Discord auth code');
+        return;
+      }
+
+      // Step 1: Exchange code for token
+      const tokenRes = await fetch('http://discord-map-api.onrender.com/api/discord/token', {
+      //const tokenRes = await fetch('http://10.0.0.182:5000/api/discord/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const tokenData = await tokenRes.json();
+
+      if (tokenData.error || !tokenData.access_token) {
+        alert("Error getting token: " + tokenData.error);
+        return;
+      }
+
+      const access_token = tokenData.access_token;
+
+      // Step 2: Use token to get Discord user info
+      const userRes = await fetch ('http://discord-map-api.onrender.com/api/discord/user', {
+      //const userRes = await fetch('http://10.0.0.182:5000/api/discord/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token }),
+      });
+      const discordUser = await userRes.json();
+
+      if (discordUser.error) {
+        alert("Error getting user: " + discordUser.error);
+        return;
+      }
+
+      // Step 3: Redirect back to main page with token & user info
+      localStorage.setItem('discordUser', JSON.stringify(discordUser));
+      window.location.href = 'index.html'; // send them back to the map
+    }
+
+    getAccessToken();
+  </script>
+</body>
+</html>

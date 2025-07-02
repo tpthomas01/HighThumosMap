@@ -333,6 +333,29 @@
     <div id="toast" style="display: none;"></div>
   </div>
 </div>
+<!-- Link Discord Button -->
+  <div style="position: fixed; top: 20px; right: 120px; z-index: 1002;">
+    <button onclick="loginWithDiscord()" style="padding: 8px 12px; background-color: #7289da; color: white; font-family: 'IM Fell English', serif; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 0 8px #2e1b0c;">
+      Link My Discord
+    </button>
+  </div>
+<!-- Link Marker Modal -->
+<div id="linkMarkerModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: #fff3dc; padding: 20px; border: 2px solid #8b5e3c; border-radius: 10px;
+  font-family: 'IM Fell English', serif; z-index: 2000; box-shadow: 0 0 15px #2e1b0c; text-align: center; max-width: 90vw; width: 320px;">
+  
+  <img id="discordAvatar" src="" style="width: 64px; height: 64px; border-radius: 50%; margin-bottom: 10px;" />
+  <p id="discordUsername" style="margin: 5px 0; font-weight: bold;"></p>
+  <p style="margin: 10px 0;">Which marker is yours?</p>
+  
+  <select id="markerDropdown" style="width: 100%; padding: 5px; font-size: 14px; margin-bottom: 10px;">
+    <option disabled selected>Select your marker</option>
+  </select>
+
+  <button id="linkMarkerBtn" style="padding: 6px 12px; background: #8b5e3c; color: white; border: none; border-radius: 5px; cursor: pointer;">
+    Link Me
+  </button>
+</div>
 
 
 
@@ -341,6 +364,96 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <script>
+    
+   function loginWithDiscord() {
+  const clientId = '1390022823929581660';
+  const redirectUri = encodeURIComponent('https://tpthomas01.github.io/HighThumosMap/oauth-callback.html');
+  const scope = encodeURIComponent('identify');
+  const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}`;
+  window.location.href = discordAuthUrl;
+}
+
+async function showLinkMarkerModal(discordUser) {
+  document.getElementById("discordAvatar").src = discordUser.avatar_url;
+  document.getElementById("discordUsername").textContent = `${discordUser.username}#${discordUser.discriminator}`;
+
+  const res = await fetch("https://discord-map-api.onrender.com/data");
+  //const res = await fetch("http://10.0.0.182:5000/data");
+  const members = await res.json();
+
+  const dropdown = document.getElementById("markerDropdown");
+  dropdown.innerHTML = '<option disabled selected>Select your marker</option>';
+
+  members.forEach(member => {
+  if (member["Discord ID"]) return; // skip if already linked
+
+  const label = `${member["Name"]} — ${member["City, State, Country"]}`;
+  const option = document.createElement("option");
+  option.value = label;
+  option.textContent = label;
+  dropdown.appendChild(option);
+});
+
+  //actually show the modal
+document.getElementById("linkMarkerModal").style.display = "block";
+  // Show modal
+  document.getElementById("linkMarkerBtn").onclick = async () => {
+  const selected = dropdown.value;
+  if (!selected) return alert("Please select your marker.");
+
+  const payload = {
+    selectedMarker: selected,
+    discord_id: discordUser.id,
+    username: `${discordUser.username}#${discordUser.discriminator}`,
+    avatar_url: discordUser.avatar_url
+  };
+
+  try {
+    const res = await fetch("https://discord-map-api.onrender.com/api/link-discord", {
+   // const res = await fetch("http://10.0.0.182:5000/api/link-discord", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+    if (result.success) {
+  alert("Marker linked successfully!");
+  document.getElementById("linkMarkerModal").style.display = "none";
+
+  localStorage.setItem("linkedDiscordId", discordUser.id); //  Save locally
+  const btn = document.querySelector("button[onclick='loginWithDiscord()']");
+  if (btn) btn.style.display = "none"; //  Hide button
+
+  showToast("🪝 Discord linked. Your marker is now updated!");
+  loadMarkers(); // Refresh marker
+}
+ else {
+      alert("Error linking marker: " + result.error);
+    }
+  } catch (err) {
+    console.error("Error:", err);
+    alert("Failed to link marker.");
+  }
+};
+
+}
+
+//  This should be OUTSIDE of showLinkMarkerModal
+window.addEventListener('DOMContentLoaded', () => {
+  const discordUser = localStorage.getItem('discordUser');
+  if (discordUser) {
+    showLinkMarkerModal(JSON.parse(discordUser));
+    localStorage.removeItem('discordUser');
+  }
+  // Check if this user is already linked and hide button
+const storedLinkedId = localStorage.getItem("linkedDiscordId");
+  if (storedLinkedId) {
+  const btn = document.querySelector("button[onclick='loginWithDiscord()']");
+  if (btn) btn.style.display = "none";
+}
+});
+
    const map = L.map('map', {
       minZoom: 2,
       maxZoom: 18,
@@ -373,6 +486,7 @@
   document.getElementById("memberList").innerHTML = "";
 
   fetch('https://discord-map-api.onrender.com/data')
+  //fetch('http://10.0.0.182:5000/data')
     .then(res => res.json())
     .then(data => {
       data.forEach(user => {
@@ -381,7 +495,10 @@
         const lat = parseFloat(user["Latitude"]);
         const lon = parseFloat(user["Longitude"]);
 
-        
+        const discord_id = user["Discord ID"];
+        const discord_username = user["Discord Username"];
+        const avatar_url = user["Discord Avatar URL"];
+
         const city = (user["City"] || "").trim();
         const state = (user["State"] || "").trim();
         const country = (user["Country"] || "").trim();
@@ -392,7 +509,12 @@
 
           const marker = L.marker([jitteredLat, jitteredLon], { icon: pirateIcon })
             .addTo(map)
-            .bindPopup(`<b>⚓ ${name}</b><br>Spotted in ${location}`);
+            .bindPopup(`
+                        <b>⚓ ${name}</b><br>
+                        Spotted in ${location}<br>
+                        ${avatar_url ? `<img src="${avatar_url}" style="width:30px; border-radius:50%" /><br>` : ''}
+                        ${discord_id ? `<a href="https://discord.com/users/${discord_id}" target="_blank">Message on Discord</a>` : ''}
+                      `)
 
           marker.name = name; // Store clean name
           
