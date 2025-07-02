@@ -52,9 +52,9 @@
 
   #highthumos {
     position: fixed;
-    top: 35px;
+    top: 25px;
     right: 10px;
-    width: 100px;
+    width: 80px;
     z-index: 999;
   }
 
@@ -228,7 +228,38 @@
   border: none;
   pointer-events: auto;
 }
+#discord-link-button {
+  position: fixed;
+  top: 20px;
+  right: 120px;
+  z-index: 1002;
+}
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff3dc;
+  color: #2b1e16;
+  border: 2px solid #8b5e3c;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-family: 'IM Fell English', serif;
+  font-size: 16px;
+  box-shadow: 0 0 10px #2e1b0c;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
 
+@media (max-width: 768px) {
+  #discord-link-button {
+    top: 83px;
+    left: 38%;
+    right: unset;
+    transform: translateX(-50%);
+  }
+}
 
   /* Responsive Mobile View */
  @media (max-width: 480px) {
@@ -330,11 +361,10 @@
 
     <button id="findNearbyBtn" class="find-nearby-btn">Find Brothers Near You</button>
     <ul id="memberList"></ul>
-    <div id="toast" style="display: none;"></div>
   </div>
 </div>
 <!-- Link Discord Button -->
-  <div style="position: fixed; top: 20px; right: 120px; z-index: 1002;">
+  <div id="discord-link-button">
     <button onclick="loginWithDiscord()" style="padding: 8px 12px; background-color: #7289da; color: white; font-family: 'IM Fell English', serif; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 0 8px #2e1b0c;">
       Link My Discord
     </button>
@@ -369,23 +399,24 @@
   const clientId = '1390022823929581660';
   const redirectUri = encodeURIComponent('https://tpthomas01.github.io/HighThumosMap/oauth-callback.html');
   const scope = encodeURIComponent('identify');
-  const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}`;
+  const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=1390022823929581660&response_type=code&redirect_uri=https%3A%2F%2Ftpthomas01.github.io%2FHighThumosMap%2Foauth-callback.html&scope=identify`;
   window.location.href = discordAuthUrl;
 }
 
 async function showLinkMarkerModal(discordUser) {
   document.getElementById("discordAvatar").src = discordUser.avatar_url;
-  document.getElementById("discordUsername").textContent = `${discordUser.username}#${discordUser.discriminator}`;
+  document.getElementById("discordUsername").textContent = discordUser.username;
 
   const res = await fetch("https://discord-map-api.onrender.com/data");
-  //const res = await fetch("http://10.0.0.182:5000/data");
-  const members = await res.json();
+//const res = await fetch("http://10.0.0.182:5000/data");
+const members = await res.json();
 
-  const dropdown = document.getElementById("markerDropdown");
-  dropdown.innerHTML = '<option disabled selected>Select your marker</option>';
+// Build dropdown
+const dropdown = document.getElementById("markerDropdown");
+dropdown.innerHTML = '<option disabled selected>Select your marker</option>';
 
-  members.forEach(member => {
-  if (member["Discord ID"]) return; // skip if already linked
+members.forEach(member => {
+  if (member["Discord ID"]) return; // Skip already linked
 
   const label = `${member["Name"]} — ${member["City, State, Country"]}`;
   const option = document.createElement("option");
@@ -394,23 +425,22 @@ async function showLinkMarkerModal(discordUser) {
   dropdown.appendChild(option);
 });
 
-  //actually show the modal
 document.getElementById("linkMarkerModal").style.display = "block";
-  // Show modal
-  document.getElementById("linkMarkerBtn").onclick = async () => {
+
+// Button handler
+document.getElementById("linkMarkerBtn").onclick = async () => {
   const selected = dropdown.value;
   if (!selected) return alert("Please select your marker.");
 
   const payload = {
     selectedMarker: selected,
     discord_id: discordUser.id,
-    username: `${discordUser.username}#${discordUser.discriminator}`,
+    username: discordUser.username,
     avatar_url: discordUser.avatar_url
   };
 
   try {
     const res = await fetch("https://discord-map-api.onrender.com/api/link-discord", {
-   // const res = await fetch("http://10.0.0.182:5000/api/link-discord", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -418,17 +448,16 @@ document.getElementById("linkMarkerModal").style.display = "block";
 
     const result = await res.json();
     if (result.success) {
-  alert("Marker linked successfully!");
-  document.getElementById("linkMarkerModal").style.display = "none";
+      alert("Marker linked successfully!");
+      document.getElementById("linkMarkerModal").style.display = "none";
 
-  localStorage.setItem("linkedDiscordId", discordUser.id); //  Save locally
-  const btn = document.querySelector("button[onclick='loginWithDiscord()']");
-  if (btn) btn.style.display = "none"; //  Hide button
+      localStorage.setItem("linkedDiscordId", discordUser.id);
+      const btn = document.querySelector("button[onclick='loginWithDiscord()']");
+      if (btn) btn.style.display = "none";
 
-  showToast("🪝 Discord linked. Your marker is now updated!");
-  loadMarkers(); // Refresh marker
-}
- else {
+      showToast("🪝 Discord linked. Your marker is now updated!");
+      loadMarkers();
+    } else {
       alert("Error linking marker: " + result.error);
     }
   } catch (err) {
@@ -437,22 +466,52 @@ document.getElementById("linkMarkerModal").style.display = "block";
   }
 };
 
+
 }
 
-//  This should be OUTSIDE of showLinkMarkerModal
 window.addEventListener('DOMContentLoaded', () => {
   const discordUser = localStorage.getItem('discordUser');
+  const linkedId = localStorage.getItem('linkedDiscordId');
+  const showToastFlag = localStorage.getItem('showAlreadyLinkedToast');
+
   if (discordUser) {
-    showLinkMarkerModal(JSON.parse(discordUser));
-    localStorage.removeItem('discordUser');
+    const parsedUser = JSON.parse(discordUser);
+
+    fetch("https://discord-map-api.onrender.com/data")
+      .then(res => res.json())
+      .then(members => {
+        const isLinked = members.some(m => Number(m["Discord ID"]) === Number(parsedUser.id));
+        if (isLinked) {
+          // Set ID to localStorage in case user is switching devices
+          localStorage.setItem("linkedDiscordId", parsedUser.id);
+
+          if (showToastFlag === "true") {
+            showToast("🪝 You're already linked, brother");
+            localStorage.removeItem("showAlreadyLinkedToast");
+          }
+
+          const btn = document.querySelector("button[onclick='loginWithDiscord()']");
+          if (btn) btn.style.display = "none";
+        } else {
+          showLinkMarkerModal(parsedUser); // Only show modal if not linked
+        }
+
+        localStorage.removeItem("discordUser");
+      })
+      .catch(err => {
+        console.error("Failed to fetch sheet data:", err);
+        showLinkMarkerModal(parsedUser); // fallback
+        localStorage.removeItem("discordUser");
+      });
+  } else if (linkedId) {
+    // Already linked (silent load, no toast)
+    const btn = document.querySelector("button[onclick='loginWithDiscord()']");
+    if (btn) btn.style.display = "none";
   }
-  // Check if this user is already linked and hide button
-const storedLinkedId = localStorage.getItem("linkedDiscordId");
-  if (storedLinkedId) {
-  const btn = document.querySelector("button[onclick='loginWithDiscord()']");
-  if (btn) btn.style.display = "none";
-}
 });
+
+
+
 
    const map = L.map('map', {
       minZoom: 2,
@@ -470,6 +529,13 @@ const storedLinkedId = localStorage.getItem("linkedDiscordId");
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
+    // ensure the attribution control is present (Leaflet adds it by default, but this is explicit)
+    L.control.attribution({ prefix: false }).addTo(map);
+
+    // OSM is already credited by tileLayer; now add geocoding credit:
+    map.attributionControl.addAttribution(
+      'Geocoding by <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a>'
+    );
     const pirateIcon = L.icon({
       iconUrl: 'https://cdn-icons-png.flaticon.com/128/2144/2144847.png',
       iconSize: [30, 30],
@@ -509,13 +575,14 @@ const storedLinkedId = localStorage.getItem("linkedDiscordId");
 
           const marker = L.marker([jitteredLat, jitteredLon], { icon: pirateIcon })
             .addTo(map)
-            .bindPopup(`
-                        <b>⚓ ${name}</b><br>
-                        Spotted in ${location}<br>
-                        ${avatar_url ? `<img src="${avatar_url}" style="width:30px; border-radius:50%" /><br>` : ''}
-                        ${discord_id ? `<a href="https://discord.com/users/${discord_id}" target="_blank">Message on Discord</a>` : ''}
-                      `)
-
+           .bindPopup(`
+                      <b>⚓ ${name}</b><br>
+                      Spotted in ${location}<br>
+                      ${avatar_url ? `<img src="${avatar_url}" style="width:40px; border-radius:50%; margin: 5px 0;" /><br>` : ''}
+                      ${discord_username ? `<p><strong>Discord:</strong> ${discord_username}</p>
+                      <button onclick="copyToClipboard('${discord_username}')" style="margin-top: 5px;">Copy Username</button>` : ''}
+                    `)
+                    
           marker.name = name; // Store clean name
           
           markers.push(marker);
@@ -694,6 +761,11 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   document.getElementById("nearbyModal").style.display = "none";
   document.getElementById("memberListBox").style.display = "none";
 });
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast("📋 Copied to clipboard: " + text);
+  });
+}
 function showToast(message, duration = 3500) {
   const toast = document.getElementById("toast");
   toast.textContent = message;
@@ -706,5 +778,8 @@ function showToast(message, duration = 3500) {
   }, duration);
 }
   </script>
+  <!-- Toast Notification -->
+<div id="toast" style="display: none;"></div>
+
 </body>
 </html>

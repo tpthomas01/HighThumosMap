@@ -17,7 +17,7 @@
       }
 
       // Step 1: Exchange code for token
-      const tokenRes = await fetch('http://discord-map-api.onrender.com/api/discord/token', {
+      const tokenRes = await fetch('https://discord-map-api.onrender.com/api/discord/token', {
       //const tokenRes = await fetch('http://10.0.0.182:5000/api/discord/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,7 +33,7 @@
       const access_token = tokenData.access_token;
 
       // Step 2: Use token to get Discord user info
-      const userRes = await fetch ('http://discord-map-api.onrender.com/api/discord/user', {
+      const userRes = await fetch ('https://discord-map-api.onrender.com/api/discord/user', {
       //const userRes = await fetch('http://10.0.0.182:5000/api/discord/user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -46,9 +46,22 @@
         return;
       }
 
-      // Step 3: Redirect back to main page with token & user info
-      localStorage.setItem('discordUser', JSON.stringify(discordUser));
-      window.location.href = 'index.html'; // send them back to the map
+       // Now check if this user is already linked
+      const sheetRes = await fetch("https://discord-map-api.onrender.com/data");
+      const members = await sheetRes.json();
+
+      const isLinked = members.some(m => Number(m["Discord ID"] || "") === Number(discordUser.id));
+
+      // Store user for use in main app
+      localStorage.setItem("discordUser", JSON.stringify(discordUser));
+
+      if (isLinked) {
+        localStorage.setItem("linkedDiscordId", discordUser.id);
+        localStorage.setItem("showAlreadyLinkedToast", "true");
+      }
+
+      // Redirect back
+      window.location.href = 'https://tpthomas01.github.io/HighThumosMap/';
     }
 
     getAccessToken();
