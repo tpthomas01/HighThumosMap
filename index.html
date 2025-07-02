@@ -228,7 +228,21 @@
   border: none;
   pointer-events: auto;
 }
+#discord-link-button {
+  position: fixed;
+  top: 20px;
+  right: 120px;
+  z-index: 1002;
+}
 
+@media (max-width: 768px) {
+  #discord-link-button {
+    top: unset;
+    bottom: 80px;
+    left: 10px;
+    right: unset;
+  }
+}
 
   /* Responsive Mobile View */
  @media (max-width: 480px) {
@@ -334,7 +348,7 @@
   </div>
 </div>
 <!-- Link Discord Button -->
-  <div style="position: fixed; top: 20px; right: 120px; z-index: 1002;">
+  <div id="discord-link-button">
     <button onclick="loginWithDiscord()" style="padding: 8px 12px; background-color: #7289da; color: white; font-family: 'IM Fell English', serif; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 0 8px #2e1b0c;">
       Link My Discord
     </button>
@@ -369,13 +383,13 @@
   const clientId = '1390022823929581660';
   const redirectUri = encodeURIComponent('https://tpthomas01.github.io/HighThumosMap/oauth-callback.html');
   const scope = encodeURIComponent('identify');
-  const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}`;
+  const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=1390022823929581660&response_type=code&redirect_uri=https%3A%2F%2Ftpthomas01.github.io%2FHighThumosMap%2Foauth-callback.html&scope=identify`;
   window.location.href = discordAuthUrl;
 }
 
 async function showLinkMarkerModal(discordUser) {
   document.getElementById("discordAvatar").src = discordUser.avatar_url;
-  document.getElementById("discordUsername").textContent = `${discordUser.username}#${discordUser.discriminator}`;
+  document.getElementById("discordUsername").textContent = discordUser.username;
 
   const res = await fetch("https://discord-map-api.onrender.com/data");
   //const res = await fetch("http://10.0.0.182:5000/data");
@@ -404,7 +418,7 @@ document.getElementById("linkMarkerModal").style.display = "block";
   const payload = {
     selectedMarker: selected,
     discord_id: discordUser.id,
-    username: `${discordUser.username}#${discordUser.discriminator}`,
+    username: discordUser.username,
     avatar_url: discordUser.avatar_url
   };
 
@@ -509,13 +523,14 @@ const storedLinkedId = localStorage.getItem("linkedDiscordId");
 
           const marker = L.marker([jitteredLat, jitteredLon], { icon: pirateIcon })
             .addTo(map)
-            .bindPopup(`
-                        <b>⚓ ${name}</b><br>
-                        Spotted in ${location}<br>
-                        ${avatar_url ? `<img src="${avatar_url}" style="width:30px; border-radius:50%" /><br>` : ''}
-                        ${discord_id ? `<a href="https://discord.com/users/${discord_id}" target="_blank">Message on Discord</a>` : ''}
-                      `)
-
+           .bindPopup(`
+                      <b>⚓ ${name}</b><br>
+                      Spotted in ${location}<br>
+                      ${avatar_url ? `<img src="${avatar_url}" style="width:40px; border-radius:50%; margin: 5px 0;" /><br>` : ''}
+                      ${discord_username ? `<p><strong>Discord:</strong> ${discord_username}</p>
+                      <button onclick="copyToClipboard('${discord_username}')" style="margin-top: 5px;">Copy Username</button>` : ''}
+                    `)
+                    
           marker.name = name; // Store clean name
           
           markers.push(marker);
@@ -694,6 +709,11 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   document.getElementById("nearbyModal").style.display = "none";
   document.getElementById("memberListBox").style.display = "none";
 });
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast("📋 Copied to clipboard: " + text);
+  });
+}
 function showToast(message, duration = 3500) {
   const toast = document.getElementById("toast");
   toast.textContent = message;
