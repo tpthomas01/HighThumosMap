@@ -37,18 +37,6 @@ It loads external assets directly in the browser:
 - Google Fonts
 - External images/icons
 
-## Do We Need a `requirements.txt`?
-
-No, not for the frontend as it exists now.
-
-Why:
-
-- `requirements.txt` is for Python projects
-- this frontend is plain HTML/CSS/JavaScript with CDN-loaded libraries
-- there is no Node/Vite/React build step
-
-If you later add a frontend build tool (Vite/React/etc.), add a `package.json` instead of a `requirements.txt`.
-
 ## Local Development
 
 Because this is a static site, you can serve it locally with any static web server.
