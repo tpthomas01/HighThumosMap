@@ -1,101 +1,72 @@
-# Discord Member Map Frontend
+# High Thumos Map
 
-Static frontend for the High Thumos Brotherhood map.
+This is the static frontend for The High Thumos Brotherhood map. It shows member markers on a Leaflet world map, lets people search the brotherhood list, find nearby members, and link a Discord account to the right marker.
 
-This app renders an interactive world map of members, supports search + nearby discovery, and lets members link their Discord account to their marker via the backend API.
+There is no build step and no package manager here. The app is two HTML files plus browser-loaded assets.
+
+## What It Does
+
+- Loads member data from the deployed backend.
+- Draws member markers on an interactive Leaflet map.
+- Provides a searchable member panel.
+- Uses browser geolocation for "Find Brothers Near You".
+- Sends users through Discord OAuth so they can claim/link their marker.
+- Shows Discord username and avatar data on linked markers.
 
 ## Files
 
-- `index.html`: main map UI (Leaflet map, member list, search, nearby search, Discord link flow)
-- `oauth-callback.html`: Discord OAuth redirect handler (exchanges code via backend, stores user info, redirects back)
+- `index.html` is the main app: map, search, nearby lookup, marker popups, and the Discord linking UI.
+- `oauth-callback.html` handles the Discord redirect, asks the backend to exchange the auth code, stores the returned Discord user briefly, and sends the user back to the map.
 
-## Features
+## Run It Locally
 
-- Interactive Leaflet map with custom marker icons
-- Member list/search panel (compass toggle)
-- Nearby member search using browser geolocation + selectable radius
-- Discord account linking flow (OAuth redirect -> callback -> marker claim modal)
-- Marker popups with Discord avatar + username (when linked)
-- Auto-refresh of map data from backend (`/data`)
-
-## Architecture (Frontend Side)
-
-- Static hosting (currently GitHub Pages)
-- Browser fetches data from backend API (`https://discord-map-api.onrender.com`)
-- Discord OAuth starts in `index.html`
-- Discord redirects to `oauth-callback.html`
-- Callback page sends OAuth code to backend for secure token exchange
-- Main page reads temporary `localStorage` values to complete linking UI
-
-## Dependencies
-
-This frontend does not use a build tool or package manager.
-
-It loads external assets directly in the browser:
-
-- Leaflet CSS/JS (CDN)
-- Google Fonts
-- External images/icons
-
-## Local Development
-
-Because this is a static site, you can serve it locally with any static web server.
-
-Example (Python):
+Any static file server will work. For example:
 
 ```powershell
-cd .\discord-map-frontend
+cd .\HighThumosMap
 python -m http.server 8000
 ```
 
 Then open:
 
-- `http://localhost:8000/`
+```text
+http://localhost:8000/
+```
 
-Notes:
+The map will still call the deployed backend at `https://discord-map-api.onrender.com`.
 
-- Discord OAuth callback URLs must exactly match what is configured in your Discord app.
-- The current frontend is hardcoded for GitHub Pages + the deployed Render backend, so local OAuth testing requires updating those URLs.
+Local Discord OAuth testing needs a little more setup. Discord redirect URLs must match exactly, so the Discord app, `index.html`, and the backend config all need to agree on the same callback URL.
 
-## Configuration (Currently Hardcoded)
+## Hardcoded Config
 
-The following values are embedded directly in the HTML files and must stay aligned with backend + Discord app settings:
+These values are currently embedded directly in the HTML:
 
-- Discord client ID (`index.html`)
-- Frontend redirect URI / callback URL (`index.html`)
-- Backend API base URL (`index.html`, `oauth-callback.html`)
-- Post-login redirect back to frontend home (`oauth-callback.html`)
+- Discord client ID in `index.html`
+- Discord callback URL in `index.html`
+- Backend API base URL in `index.html` and `oauth-callback.html`
+- Frontend home URL used after login in `oauth-callback.html`
 
-## Backend API Endpoints Used
+If one of these changes, update the full chain at the same time. OAuth is strict about exact URLs.
 
-From `index.html`:
+## Backend Calls
+
+`index.html` uses:
 
 - `GET /data`
 - `POST /api/link-discord`
 
-From `oauth-callback.html`:
+`oauth-callback.html` uses:
 
 - `POST /api/discord/token`
 - `POST /api/discord/user`
-- `GET /data` (to detect already-linked users)
-
-## Browser Permissions / Storage
-
-- Geolocation permission is required for the "Find Brothers Near You" feature.
-- `localStorage` is used to temporarily persist Discord user/link state across the OAuth redirect.
+- `GET /data`
 
 ## Deployment Notes
 
-- Designed for static hosting (GitHub Pages works well).
-- Ensure `oauth-callback.html` is deployed at the exact path configured in:
-  - Discord Developer Portal OAuth redirect URI
-  - frontend `index.html`
-  - backend `generate_map.py`
-- Backend must allow CORS for the frontend origin.
+This site is meant for static hosting. GitHub Pages is enough as long as:
 
-## Recommended Next Improvements (Optional)
+- `oauth-callback.html` is deployed at the exact URL registered in Discord.
+- The backend allows CORS from the frontend origin.
+- Any backend-side redirect or frontend URL config points back to this deployed site.
 
-- Move hardcoded URLs/client ID into a small config block at the top of each file
-- Extract CSS/JS out of `index.html` into separate files for maintainability
-- Add basic error UI for failed backend requests (instead of only alerts/console logs)
-- Normalize file encoding to UTF-8 if special characters/emojis display incorrectly in some editors
+Browser geolocation only works after the user grants permission, and it behaves best over HTTPS.
