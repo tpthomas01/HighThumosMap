@@ -11,6 +11,9 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
+  <!-- Leaflet.markercluster CSS (groups pins into doubloons so the map stays smooth) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+
   <!-- Pirate-style serif font -->
   <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
 
@@ -322,6 +325,28 @@
 }
 
 
+
+/* Pirate doubloon cluster bubbles */
+.doubloon-cluster { background: transparent; border: none; }
+.doubloon {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IM Fell English', serif;
+  font-weight: bold;
+  color: #4a3408;
+  background: radial-gradient(circle at 35% 30%, #fff3c4 0%, #f2d479 28%, #d9a82e 60%, #a9781a 88%, #7c5510 100%);
+  border: 2px solid #6e4f12;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.45), inset 0 0 4px rgba(255,255,255,0.55), inset 0 -3px 5px rgba(110,79,18,0.5);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+}
+.doubloon-sm { font-size: 12px; }
+.doubloon-md { font-size: 14px; }
+.doubloon-lg { font-size: 17px; }
+.doubloon span { line-height: 1; }
 </style>
 
 </head>
@@ -392,6 +417,9 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Leaflet.markercluster JS -->
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <script>
     
@@ -542,6 +570,64 @@ window.addEventListener('DOMContentLoaded', () => {
       popupAnchor: [0, -30]
     });
 
+    // Group the pins into doubloon clusters so the map only ever draws a handful
+    // of bubbles instead of all ~716 icons at once (keeps zoom/pan smooth).
+    const clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 50,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: false, // we handle clicks ourselves (fly in, then spiderfy)
+      spiderfyOnMaxZoom: false,   // don't let the library auto-spiderfy on click;
+                                  // our handler spiderfies only AFTER the zoom finishes
+      chunkedLoading: true,
+      iconCreateFunction: function (cluster) {
+        const count = cluster.getChildCount();
+        let size = 36, cls = 'sm';
+        if (count >= 100) { size = 54; cls = 'lg'; }
+        else if (count >= 10) { size = 44; cls = 'md'; }
+        return L.divIcon({
+          html: '<div class="doubloon doubloon-' + cls + '"><span>' + count + '</span></div>',
+          className: 'doubloon-cluster',
+          iconSize: [size, size]
+        });
+      }
+    }).addTo(map);
+
+    // Reveal a marker even if it's tucked inside a collapsed cluster, then open it.
+    function focusMarker(marker) {
+      if (!marker) return;
+      clusterGroup.zoomToShowLayer(marker, () => marker.openPopup());
+      document.getElementById("memberListBox").style.display = "none";
+    }
+
+    // Clicking a city's doubloon flies IN to the city first, THEN spiderfies —
+    // instead of fanning the pirates out while still zoomed way out over the state.
+    const CITY_ZOOM = 13;
+    clusterGroup.on('clusterclick', function (e) {
+      const cluster = e.layer;
+      const b = cluster.getBounds();
+      const samePoint = b.getNorthEast().equals(b.getSouthWest());
+
+      if (!samePoint) {            // several different places bundled together
+        cluster.zoomToBounds();    // break them apart instead of spiderfying
+        return;
+      }
+
+      if (map.getZoom() < CITY_ZOOM) {
+        const child = cluster.getAllChildMarkers()[0];
+        map.flyTo(cluster.getLatLng(), CITY_ZOOM);
+        map.once('moveend', () => {
+          // Let markercluster finish re-clustering after the zoom before we spiderfy,
+          // otherwise it briefly fans out mid-zoom and then collapses back to a doubloon.
+          setTimeout(() => {
+            const parent = clusterGroup.getVisibleParent(child);
+            if (parent && parent.spiderfy) parent.spiderfy();
+          }, 300);
+        });
+      } else {
+        cluster.spiderfy();
+      }
+    });
+
     const markers = [];
     const markerMap = {};
 
@@ -553,7 +639,7 @@ window.addEventListener('DOMContentLoaded', () => {
       if (text === lastDataJson) return; // data unchanged — skip the costly teardown/rebuild
       lastDataJson = text;
 
-      markers.forEach(m => map.removeLayer(m));
+      clusterGroup.clearLayers();
       markers.length = 0;
       document.getElementById("memberList").innerHTML = "";
 
@@ -573,11 +659,9 @@ window.addEventListener('DOMContentLoaded', () => {
         const country = (user["Country"] || "").trim();
 
         if (!isNaN(lat) && !isNaN(lon)) {
-          const jitteredLat = lat + (Math.random() - 0.5) * 0.0215;
-          const jitteredLon = lon + (Math.random() - 0.5) * 0.0215;
-
-          const marker = L.marker([jitteredLat, jitteredLon], { icon: pirateIcon })
-            .addTo(map)
+          // No jitter: everyone in a city shares the exact geocoded point, so they
+          // always merge into one doubloon (click / zoom to spiderfy them apart).
+          const marker = L.marker([lat, lon], { icon: pirateIcon })
            .bindPopup(`
                       <b>⚓ ${name}</b><br>
                       Spotted in ${location}<br>
@@ -597,15 +681,13 @@ window.addEventListener('DOMContentLoaded', () => {
           li.dataset.state = state;
           li.dataset.country = country;
 
-          li.addEventListener("click", () => {
-            map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 4));
-            marker.openPopup();
-            document.getElementById("memberListBox").style.display = "none";
-          });
+          li.addEventListener("click", () => focusMarker(marker));
 
           document.getElementById("memberList").appendChild(li);
         }
       });
+
+      clusterGroup.addLayers(markers);
     });
 }
 
@@ -713,11 +795,7 @@ markers.forEach(marker => {
   if (distance <= radius) {
     const li = document.createElement("li");
     li.textContent = name;
-    li.addEventListener("click", () => {
-      map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 4));
-      marker.openPopup();
-      document.getElementById("memberListBox").style.display = "none";
-    });
+    li.addEventListener("click", () => focusMarker(marker));
     memberList.appendChild(li);
     count++;
   }
@@ -747,11 +825,7 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   Object.keys(markerMap).forEach(name => {
     const li = document.createElement("li");
     li.textContent = name.charAt(0).toUpperCase() + name.slice(1);
-    li.addEventListener("click", () => {
-      map.flyTo(markerMap[name].getLatLng(), Math.max(map.getZoom(), 4));
-      markerMap[name].openPopup();
-      document.getElementById("memberListBox").style.display = "none";
-    });
+    li.addEventListener("click", () => focusMarker(markerMap[name]));
     document.getElementById("memberList").appendChild(li);
   });
 
