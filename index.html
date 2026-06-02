@@ -545,14 +545,19 @@ window.addEventListener('DOMContentLoaded', () => {
     const markers = [];
     const markerMap = {};
 
+   let lastDataJson = "";
    function loadMarkers() {
-  markers.forEach(m => map.removeLayer(m));
-  markers.length = 0;
-  document.getElementById("memberList").innerHTML = "";
-
   fetch('data.json')
-    .then(res => res.json())
-    .then(data => {
+    .then(res => res.text())
+    .then(text => {
+      if (text === lastDataJson) return; // data unchanged — skip the costly teardown/rebuild
+      lastDataJson = text;
+
+      markers.forEach(m => map.removeLayer(m));
+      markers.length = 0;
+      document.getElementById("memberList").innerHTML = "";
+
+      const data = JSON.parse(text);
       data.forEach(user => {
         const name = user["Name"];
         const location = user["City, State, Country"];
@@ -605,7 +610,7 @@ window.addEventListener('DOMContentLoaded', () => {
 }
 
     loadMarkers();
-    setInterval(loadMarkers, 60000);
+    setInterval(loadMarkers, 300000); // 5 min; the guard below skips rebuilding when data is unchanged
 
   document.getElementById("searchBox").addEventListener("input", function () {
   const rawQuery = this.value.toLowerCase();
