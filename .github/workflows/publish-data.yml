@@ -21,8 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      # Override with a repo secret if your backend URL ever changes.
-      BASE: ${{ secrets.RENDER_BASE_URL || 'https://discord-map-api.onrender.com' }}
+      # Public backend URL — the same one index.html calls, so it isn't a secret.
+      # (A RENDER_BASE_URL secret was producing a 404 at /data, so we point at the
+      # verified-working URL directly.)
+      BASE: "https://discord-map-api.onrender.com"
 
     steps:
       - name: Checkout
@@ -31,10 +33,10 @@ jobs:
       - name: Fetch /data and build data.json
         run: |
           set -e
-          BASE="$(echo -n "$BASE" | tr -d '\r\n ' )"
-          if [[ ! "$BASE" =~ ^https?:// ]]; then BASE="https://$BASE"; fi
+          URL="${BASE%/}/data"
+          echo "Fetching $URL"
           # Render free tier cold-starts (~30-60s) — give it generous time + retries.
-          curl -sS --fail --max-time 90 --retry 3 --retry-delay 10 "${BASE%/}/data" -o raw.json
+          curl -sS --fail --max-time 90 --retry 3 --retry-delay 10 "$URL" -o raw.json
           # Keep only the fields the map needs: smaller file, less commit churn,
           # and we don't publish the geocoding bookkeeping columns.
           jq '[.[] | {
