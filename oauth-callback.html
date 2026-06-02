@@ -47,7 +47,7 @@
       }
 
        // Now check if this user is already linked
-      const sheetRes = await fetch("https://discord-map-api.onrender.com/data");
+      const sheetRes = await fetch("data.json");
       const members = await sheetRes.json();
 
       const isLinked = members.some(m => Number(m["Discord ID"] || "") === Number(discordUser.id));

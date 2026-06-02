@@ -407,8 +407,7 @@ async function showLinkMarkerModal(discordUser) {
   document.getElementById("discordAvatar").src = discordUser.avatar_url;
   document.getElementById("discordUsername").textContent = discordUser.username;
 
-  const res = await fetch("https://discord-map-api.onrender.com/data");
-//const res = await fetch("http://10.0.0.182:5000/data");
+  const res = await fetch("data.json");
 const members = await res.json();
 
 // Build dropdown
@@ -477,7 +476,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (discordUser) {
     const parsedUser = JSON.parse(discordUser);
 
-    fetch("https://discord-map-api.onrender.com/data")
+    fetch("data.json")
       .then(res => res.json())
       .then(members => {
         const isLinked = members.some(m => Number(m["Discord ID"]) === Number(parsedUser.id));
@@ -551,8 +550,7 @@ window.addEventListener('DOMContentLoaded', () => {
   markers.length = 0;
   document.getElementById("memberList").innerHTML = "";
 
-  fetch('https://discord-map-api.onrender.com/data')
-  //fetch('http://10.0.0.182:5000/data')
+  fetch('data.json')
     .then(res => res.json())
     .then(data => {
       data.forEach(user => {

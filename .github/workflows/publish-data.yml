@@ -1,0 +1,64 @@
+name: Publish data.json
+
+# Pulls the current member feed from the backend and commits it as a static
+# data.json so GitHub Pages can serve it instantly (no Render cold start on
+# page load). Geocoding itself lives in the backend repo's own workflow.
+
+on:
+  schedule:
+    - cron: "5-59/20 * * * *"   # minutes 5,25,45 — a few min after the backend's geocode job
+  workflow_dispatch: {}
+
+concurrency:
+  group: publish-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # allow the job to commit data.json back to the repo
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Override with a repo secret if your backend URL ever changes.
+      BASE: ${{ secrets.RENDER_BASE_URL || 'https://discord-map-api.onrender.com' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch /data and build data.json
+        run: |
+          set -e
+          BASE="$(echo -n "$BASE" | tr -d '\r\n ' )"
+          if [[ ! "$BASE" =~ ^https?:// ]]; then BASE="https://$BASE"; fi
+          # Render free tier cold-starts (~30-60s) — give it generous time + retries.
+          curl -sS --fail --max-time 90 --retry 3 --retry-delay 10 "${BASE%/}/data" -o raw.json
+          # Keep only the fields the map needs: smaller file, less commit churn,
+          # and we don't publish the geocoding bookkeeping columns.
+          jq '[.[] | {
+                Name,
+                "City, State, Country": .["City, State, Country"],
+                Latitude,
+                Longitude,
+                "Discord ID": .["Discord ID"],
+                "Discord Username": .["Discord Username"],
+                "Discord Avatar URL": .["Discord Avatar URL"]
+              }]' raw.json > data.json
+          rm -f raw.json
+          # Sanity check: must be a non-empty JSON array, or we keep the old file.
+          test "$(jq 'length' data.json)" -gt 0
+
+      - name: Commit data.json if changed
+        run: |
+          set -e
+          if git status --porcelain data.json | grep -q .; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data.json
+            git commit -m "Update data.json"
+            git push
+          else
+            echo "data.json unchanged; nothing to commit."
+          fi
