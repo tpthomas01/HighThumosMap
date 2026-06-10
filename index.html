@@ -637,7 +637,10 @@ window.addEventListener('DOMContentLoaded', () => {
     // Toggle box on compass click
     document.getElementById("compass-container").addEventListener("click", () => {
       const box = document.getElementById("memberListBox");
-      box.style.display = box.style.display === "none" ? "block" : "none";
+      // Check the real rendered state (the box starts hidden via CSS, so the
+      // inline style is "" on first click) — otherwise the first tap is a no-op.
+      const isHidden = getComputedStyle(box).display === "none";
+      box.style.display = isHidden ? "block" : "none";
     });
   // Close button
 document.getElementById("closeListBtn").addEventListener("click", () => {
