@@ -7229,8 +7229,8 @@
   {
     "Name": "PH",
     "City, State, Country": "Haut-Rhin",
-    "Latitude": "",
-    "Longitude": "",
+    "Latitude": 47.8655703,
+    "Longitude": 7.2316245,
     "Discord ID": "",
     "Discord Username": "",
     "Discord Avatar URL": ""
@@ -7238,6 +7238,15 @@
   {
     "Name": "PH",
     "City, State, Country": "Cernay, Haut-Rhin, Alsace, France",
+    "Latitude": 48.386709,
+    "Longitude": 1.230477,
+    "Discord ID": "",
+    "Discord Username": "",
+    "Discord Avatar URL": ""
+  },
+  {
+    "Name": "Ranchman Billy Bob",
+    "City, State, Country": "Cedar Lake,  Indiana",
     "Latitude": "",
     "Longitude": "",
     "Discord ID": "",
