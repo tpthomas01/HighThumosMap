@@ -7228,15 +7228,6 @@
   },
   {
     "Name": "PH",
-    "City, State, Country": "Haut-Rhin",
-    "Latitude": 47.8655703,
-    "Longitude": 7.2316245,
-    "Discord ID": "",
-    "Discord Username": "",
-    "Discord Avatar URL": ""
-  },
-  {
-    "Name": "PH",
     "City, State, Country": "Cernay, Haut-Rhin, Alsace, France",
     "Latitude": 48.386709,
     "Longitude": 1.230477,
@@ -7267,6 +7258,15 @@
     "City, State, Country": "Huntsville, Alabama, USA",
     "Latitude": 34.729847,
     "Longitude": -86.5859011,
+    "Discord ID": "",
+    "Discord Username": "",
+    "Discord Avatar URL": ""
+  },
+  {
+    "Name": "Shane Rowsey",
+    "City, State, Country": "Shreveport, Louisiana ",
+    "Latitude": "",
+    "Longitude": "",
     "Discord ID": "",
     "Discord Username": "",
     "Discord Avatar URL": ""
