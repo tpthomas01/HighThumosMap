@@ -7328,8 +7328,17 @@
   {
     "Name": "EmilTukaev",
     "City, State, Country": "Tashkent, Uzbekistan",
-    "Latitude": "",
-    "Longitude": "",
+    "Latitude": 41.3123363,
+    "Longitude": 69.2787079,
+    "Discord ID": "",
+    "Discord Username": "",
+    "Discord Avatar URL": ""
+  },
+  {
+    "Name": "Paul Holtfrerich",
+    "City, State, Country": "Dallas, Texas, USA",
+    "Latitude": 32.7762719,
+    "Longitude": -96.7968559,
     "Discord ID": "",
     "Discord Username": "",
     "Discord Avatar URL": ""
