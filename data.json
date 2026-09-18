@@ -7589,8 +7589,17 @@
   {
     "Name": "Sean W",
     "City, State, Country": "San Rafael, CA",
-    "Latitude": "",
-    "Longitude": "",
+    "Latitude": 37.9747795,
+    "Longitude": -122.5316686,
+    "Discord ID": "",
+    "Discord Username": "",
+    "Discord Avatar URL": ""
+  },
+  {
+    "Name": "Bobby Crowley",
+    "City, State, Country": "Bedford, Massachusetts, USA",
+    "Latitude": 42.4917301,
+    "Longitude": -71.2817947,
     "Discord ID": "",
     "Discord Username": "",
     "Discord Avatar URL": ""
